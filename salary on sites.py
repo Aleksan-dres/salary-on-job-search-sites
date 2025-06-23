@@ -2,9 +2,10 @@ import json
 import requests
 import os 
 from terminaltables import AsciiTable 
-from dotenv import load_dotenv
-PROGRAMMING_LANGUEAGES = ["JavaScript", "Java",
-                         "Python", "Ruby", "PHP", "C++", "C", "C#"]
+from dotenv import load_dotenv 
+
+
+PROGRAMMING_LANGUEAGES = ["JavaScript", "Java","Python", "Ruby", "PHP", "C++", "C", "C#"]
 
 def calculate_salary(salary_from, salary_to): 
     if salary_from is None:
@@ -17,18 +18,18 @@ def calculate_salary(salary_from, salary_to):
 
 def fetch_hh_vacancies(language):
     url = "https://api.hh.ru/vacancies"
-    id_Moscow = 1 
-    number_of_day = 30 
-    number_of_posts_per_page = 100 
+    moscow_location_id = 1 
+    num_days = 30 
+    posts_per_page = 100 
     all_vacancies = []  
     page = 0
     while True:
         payload = {
             "text": f"программист {language}",
-            "area": id_Moscow,
+            "area": moscow_location_id,
             "only_with_salary": True,
-            "period": number_of_day,
-            "per_page": number_of_posts_per_page,
+            "period": num_days,
+            "per_page": posts_per_page,
             "page": page 
         
         }
@@ -69,7 +70,7 @@ def predict_hh_salary(vacancies):
 
 def fetch_superjob_vacancies(superjob_token, language):
     url = 'https://api.superjob.ru/2.0/vacancies/'
-    list_of_vacancies = []
+    vacancies_from_superjob = []
     page = 0 
     found_vacancies = 0 
     number_of_posts_per_page = 100
@@ -85,22 +86,23 @@ def fetch_superjob_vacancies(superjob_token, language):
         }
 
         response = requests.get(url, headers=headers, params=payload)
-        response.raise_for_status()
-        vacancies = response.json().get('objects', []) 
-        total_quantity_vacancies = response.json().get('more', False)
+        response.raise_for_status()  
+        superjob_vacancies = response.json()
+        vacancies = superjob_vacancies.get('objects', []) 
+        has_next_page = superjob_vacancies.get('more', False)
         if not vacancies:
             break
-        list_of_vacancies.extend(vacancies) 
+        vacancies_from_superjob.extend(vacancies) 
         found_vacancies += len(vacancies) 
-        if not total_quantity_vacancies: 
+        if not has_next_page: 
             break
         page += 1
-    return list_of_vacancies, found_vacancies
+    return vacancies_from_superjob, found_vacancies
 
 
-def predict_rub_salary_for_superJob(list_of_vacancies):
+def predict_rub_salary_for_superJob(vacancies_from_superjob):
     average_salaries = []
-    for vacancy in list_of_vacancies:
+    for vacancy in vacancies_from_superjob:
         salary_from = vacancy.get('payment_from')
         salary_to = vacancy.get("payment_to") 
         if  salary_from  or salary_to:
@@ -134,18 +136,14 @@ def main():
     
     for language in PROGRAMMING_LANGUEAGES:
         total_vacancies, all_vacancies = fetch_hh_vacancies(language)
-        total_salary, count = predict_hh_salary(all_vacancies)
-        row = [language, total_vacancies, count, total_salary or "-"] 
-        headhunters_search_results.append(row) 
-
-    create_and_print_table(headhunters_search_results, "HeadHunters Москва")
-
-    for language in PROGRAMMING_LANGUEAGES:
-        list_of_vacancies, found_vacancies = fetch_superjob_vacancies(superjob_token, language)
-        total_salary, processed_count = predict_rub_salary_for_superJob(list_of_vacancies)
-        row = [language, found_vacancies, processed_count, total_salary or"-"]
-        superjob_search_results.append(row) 
-        
+        total_salary, count = predict_hh_salary(all_vacancies)   
+        row_headhunters = [language, total_vacancies, count, total_salary or "-"] 
+        headhunters_search_results.append(row_headhunters)      
+        vacancies_from_superjob, found_vacancies = fetch_superjob_vacancies(superjob_token, language)
+        total_salary, processed_count = predict_rub_salary_for_superJob(vacancies_from_superjob)
+        row_superjob = [language, found_vacancies, processed_count, total_salary or"-"]
+        superjob_search_results.append(row_superjob) 
+    create_and_print_table(headhunters_search_results, "HeadHunters Москва")    
     create_and_print_table(superjob_search_results, "SuperJob Москва")
 
 
