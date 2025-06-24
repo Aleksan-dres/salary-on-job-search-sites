@@ -8,12 +8,7 @@ from dotenv import load_dotenv
 PROGRAMMING_LANGUEAGES = ["JavaScript", "Java","Python", "Ruby", "PHP", "C++", "C", "C#"]
 
 def calculate_salary(salary_from, salary_to): 
-    if salary_from is None:
-        salary = 0.8 * salary_to
-    elif salary_to is None:
-        salary = 1.2 * salary_from
-    else:
-        salary = (salary_from + salary_to) / 2 
+    salary = ((salary_from or 0.8 * salary_to) + (salary_to or 1.2 * salary_from)) / 2
     return salary
 
 def fetch_hh_vacancies(language):
@@ -57,7 +52,7 @@ def predict_hh_salary(vacancies):
         salary_currency = salary_meaning.get('currency')
         salary_from = salary_meaning.get('from')
         salary_to = salary_meaning.get("to")
-        if salary_currency != 'RUR' or (salary_from is None and salary_to is None):
+        if salary_currency != 'RUR' or (salary_from is False and salary_to is False):
             continue
         salary = calculate_salary(salary_from, salary_to)
         average_salaries.append(salary)
@@ -138,11 +133,13 @@ def main():
         total_vacancies, all_vacancies = fetch_hh_vacancies(language)
         total_salary, count = predict_hh_salary(all_vacancies)   
         row_headhunters = [language, total_vacancies, count, total_salary or "-"] 
-        headhunters_search_results.append(row_headhunters)      
+        headhunters_search_results.append(row_headhunters) 
+
         vacancies_from_superjob, found_vacancies = fetch_superjob_vacancies(superjob_token, language)
         total_salary, processed_count = predict_rub_salary_for_superJob(vacancies_from_superjob)
         row_superjob = [language, found_vacancies, processed_count, total_salary or"-"]
         superjob_search_results.append(row_superjob) 
+ 
     create_and_print_table(headhunters_search_results, "HeadHunters Москва")    
     create_and_print_table(superjob_search_results, "SuperJob Москва")
 
