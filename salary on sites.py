@@ -52,7 +52,7 @@ def predict_hh_salary(vacancies):
         salary_currency = salary_meaning.get('currency')
         salary_from = salary_meaning.get('from')
         salary_to = salary_meaning.get("to")
-        if salary_currency != 'RUR' or (salary_from is False and salary_to is False):
+        if salary_currency != 'RUR' or (salary_from  and salary_to ):
             continue
         salary = calculate_salary(salary_from, salary_to)
         average_salaries.append(salary)
